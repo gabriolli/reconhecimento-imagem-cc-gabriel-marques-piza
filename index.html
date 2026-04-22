@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reconhecimento de Imagem - Teachable Machine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #2d3748;
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .start-button {
+            display: block;
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .start-button:active {
+            transform: translateY(0);
+        }
+
+        .start-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #webcam-container {
+            display: none;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #webcam-container.active {
+            display: block;
+        }
+
+        #webcam-container canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 15px;
+            border: 3px solid #667eea;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .predictions-container {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .predictions-container.active {
+            display: block;
+        }
+
+        #label-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .prediction-item {
+            background: linear-gradient(135deg, #f5f7fa 0%, #f0f3f7 100%);
+            padding: 16px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .prediction-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .prediction-label {
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .prediction-value {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 16px;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #48bb78;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .info-text {
+            text-align: center;
+            color: #718096;
+            font-size: 13px;
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .start-button {
+                padding: 12px 20px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Reconhecimento de Imagem</h1>
+            <p>Use a câmera para classificar objetos em tempo real com Machine Learning</p>
+        </div>
+
+        <button class="start-button" type="button" onclick="init()">
+            ▶️ Iniciar Câmera
+        </button>
+
+        <div id="webcam-container"></div>
+
+        <div class="predictions-container" id="predictions-container">
+            <div style="display: flex; align-items: center; margin-bottom: 20px; color: #2d3748; font-weight: 600;">
+                <span class="status-indicator"></span>
+                Classificações
+            </div>
+            <div id="label-container"></div>
+        </div>
+
+        <div class="info-text" id="info-text" style="display: none;">
+            ✅ Câmera ativa - Aproxime objetos para melhor classificação
+        </div>
+    </div>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<script type="text/javascript">
+    // More API functions here:
+    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
+
+    // the link to your model provided by Teachable Machine export panel
+    const URL = "./my_model/";
+
+    let model, webcam, labelContainer, maxPredictions;
+    let isInitialized = false;
+
+    // Load the image model and setup the webcam
+    async function init() {
+        try {
+            const startButton = document.querySelector('.start-button');
+            startButton.disabled = true;
+            startButton.textContent = '⏳ Carregando...';
+
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            // load the model and metadata
+            // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
+            // or files from your local hard drive
+            // Note: the pose library adds "tmImage" object to your window (window.tmImage)
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            // Convenience function to setup a webcam
+            const flip = true; // whether to flip the webcam
+            webcam = new tmImage.Webcam(280, 280, flip); // width, height, flip
+            await webcam.setup(); // request access to the webcam
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+
+            // append elements to the DOM
+            document.getElementById("webcam-container").classList.add('active');
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            document.getElementById("predictions-container").classList.add('active');
+            document.getElementById("info-text").style.display = 'block';
+
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) { // and class labels
+                const predictionDiv = document.createElement("div");
+                predictionDiv.className = "prediction-item";
+                predictionDiv.innerHTML = '<span class="prediction-label">Classe ' + (i + 1) + '</span><span class="prediction-value">0%</span>';
+                labelContainer.appendChild(predictionDiv);
+            }
+
+            startButton.style.display = 'none';
+            isInitialized = true;
+        } catch (error) {
+            console.error("Erro ao inicializar:", error);
+            alert("Erro ao carregar o modelo. Verifique se os arquivos estão no diretório correto.");
+            const startButton = document.querySelector('.start-button');
+            startButton.disabled = false;
+            startButton.textContent = '▶️ Iniciar Câmera';
+        }
+    }
+
+    async function loop() {
+        webcam.update(); // update the webcam frame
+        await predict();
+        window.requestAnimationFrame(loop);
+    }
+
+    // run the webcam image through the image model
+    async function predict() {
+        // predict can take in an image, video or canvas html element
+        const prediction = await model.predict(webcam.canvas);
+        for (let i = 0; i < maxPredictions; i++) {
+            const percentage = (prediction[i].probability * 100).toFixed(0);
+            const predictionItem = labelContainer.childNodes[i];
+            
+            const label = prediction[i].className;
+            const value = percentage + "%";
+            
+            predictionItem.querySelector('.prediction-label').textContent = label;
+            predictionItem.querySelector('.prediction-value').textContent = value;
+            
+            // Adiciona animação visual baseada na confiança
+            const confidence = prediction[i].probability;
+            if (confidence > 0.7) {
+                predictionItem.style.borderLeftColor = '#48bb78';
+                predictionItem.style.background = 'linear-gradient(135deg, #f0fdf4 0%, #f0fdf4 100%)';
+            } else if (confidence > 0.4) {
+                predictionItem.style.borderLeftColor = '#ecc94b';
+                predictionItem.style.background = 'linear-gradient(135deg, #fffff0 0%, #fffff0 100%)';
+            } else {
+                predictionItem.style.borderLeftColor = '#fc8181';
+                predictionItem.style.background = 'linear-gradient(135deg, #fff5f5 0%, #fff5f5 100%)';
+            }
+        }
+    }
+</script>
