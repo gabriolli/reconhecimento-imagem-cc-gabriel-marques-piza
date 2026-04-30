@@ -86,4 +86,4 @@ Este projeto é distribuído sob a licença MIT. Consulte o arquivo LICENSE para
 
 **Gabriel Marques Piza**
 - Curso: Ciência da Computação
-- Disciplina: Reconhecimento de Imagem
+- Disciplina: Engenharia de Prompt
